@@ -6,25 +6,7 @@
   gather_facts: "no"
   vars_files:
     - "group_vars/prod-workers"
-  pre_tasks:
-    - assert:
-        that:
-          - "usernames is defined"
   tasks:
-
-    - name: read the baas_users file
-      shell: "cat /root/baas/baas_users"
-      register: ulist
-      delegate_to: 127.0.0.1
-
-    - name: Input usernames to baas files
-      local_action: lineinfile line="{{ item }}" dest="/root/baas/baas_users" backup=yes
-      with_items: "{{ usernames.strip().replace(' ', '').replace(',', '\n').split('\n') }}"
-      when: usernames not in ulist.stdout
-
-    # - local_action: lineinfile line="{{ item }}" dest="/root/baas/baas_users" backup=yes
-    #   with_items: "{{ usernames.strip().replace(' ', '').replace(',', '\n').split('\n') }}"
-
     - copy:
         src: /etc/ansible/remote_files/passwd/master.passwd.open_access_ubuntu16
         dest: /root/baas/master.passwd.open_access_ubuntu16
