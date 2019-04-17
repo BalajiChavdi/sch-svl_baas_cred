@@ -16,27 +16,27 @@
 
     - copy:
         src: /etc/ansible/remote_files/automount/auto_homes_qnc
-        dest: /var/lib/awx/projects/_142__users_access_to_baas_env_workers_shell_servers/roles/common_infra/files/autofs/auto_homes_qnc
+        dest: /var/lib/awx/projects/_177__schedule_baas_user_password_qnc/roles/common_infra/files/autofs/auto_homes_qnc
         backup: yes
       delegate_to: 127.0.0.1
       tags: access
 
     - copy:
         src: /root/baas/prod_users
-        dest: /var/lib/awx/projects/_142__users_access_to_baas_env_workers_shell_servers/roles/shell-servers/files/
+        dest: /var/lib/awx/projects/_177__schedule_baas_user_password_qnc/roles/shell-servers/files/
         backup: yes
       delegate_to: 127.0.0.1
       tags: access
 
     - copy:
-        src: /usr/lib/python2.7/site-packages/ansible/modules/custom_modules/gen_pass.py
-        dest: /root/baas/gen_pass.py
+        src: /usr/lib/python2.7/site-packages/ansible/modules/custom_modules/gen_pass-sch.py
+        dest: /root/baas/gen_pass-sch.py
         backup: yes
       delegate_to: 127.0.0.1
       tags: access
 
     - name: Creating prod_users password file
-      command: /usr/bin/python /root/baas/gen_pass.py
+      command: /usr/bin/python /root/baas/gen_pass-sch.py
       delegate_to: 127.0.0.1
       tags: access
 
