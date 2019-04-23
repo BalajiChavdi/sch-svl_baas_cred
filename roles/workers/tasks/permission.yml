@@ -52,3 +52,68 @@
       _devops       ALL=(ALL:ALL) ALL
     validate: '/usr/sbin/visudo -cf %s'
   tags: access
+
+- file:
+    path: /tmp/user-construct
+    state: directory
+  delegate_to: 127.0.0.1
+
+- name: creating new /etc/master.passwd file
+  template:
+    src: templates/worker_base_passwd.j2
+    dest: /tmp/user-construct/master.passwd
+  delegate_to: 127.0.0.1
+
+- name: Copy passwd
+  copy:
+    src: /tmp/user-construct/master.passwd
+    dest: /tmp/user-construct/passwd
+  delegate_to: 127.0.0.1
+
+- name: Copy over /etc/group file
+  template:
+    src: templates/worker_base_group.j2
+    dest: /tmp/user-construct/group
+  delegate_to: 127.0.0.1
+
+- name: check kube file exists
+  stat:
+    path: /root/.kube
+  register: kube_details
+  delegate_to: 127.0.0.1
+  run_once: true
+
+- name: copy over kube configs
+  shell: "scp -r root@gngqnc001a:/root/.kube /root"
+  delegate_to: 127.0.0.1
+  async: 240
+  poll: 10
+  when: (kube_details.stat.exists and kube_details.stat.isdir == false) and (inventory_hostname == "gngqnc001a")
+  run_once: true
+
+- name: Run kube commands
+  shell: 'KUBECONFIG=/root/.kube/config /usr/bin/kubectl get pods -n baas-service | grep ssh | cut -d" " -f1'
+  register: jumphost
+  when: new_master_passwd is changed
+  delegate_to: 127.0.0.1
+  run_once: true
+
+- name: Copy commands
+  shell: "KUBECONFIG=/root/.kube/config /usr/bin/kubectl cp /tmp/user-construct/master.passwd baas-service/{{ item }}:/etc/master.passwd; KUBECONFIG=/root/.kube/config /usr/bin/kubectl cp /tmp/user-construct/passwd baas-service/{{ item }}:/etc/passwd; KUBECONFIG=/root/.kube/config /usr/bin/kubectl cp /tmp/user-construct/group baas-service/{{ item }}:/etc/group"
+  with_items:  "{{ jumphost.stdout_lines }}"
+  when: jumphost.changed
+  delegate_to: 127.0.0.1
+  run_once: true
+
+- name: Run pwconv
+  shell: "KUBECONFIG=/root/.kube/config /usr/bin/kubectl exec {{item}} -n baas-service pwconv"
+  with_items:  "{{ jumphost.stdout_lines }}"
+  when: jumphost.changed
+  delegate_to: 127.0.0.1
+  run_once: true
+
+- file:
+    path: /tmp/user-construct
+    state: absent
+  delegate_to: 127.0.0.1
+  run_once: true
